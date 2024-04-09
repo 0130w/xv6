@@ -5,6 +5,7 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "sysinfo.h"
 
 uint64
 sys_exit(void)
@@ -55,7 +56,9 @@ sys_sleep(void)
   uint ticks0;
 
 
-  argint(0, &n);
+  argint(0, &n);  // get the first argument of syscall
+  if(n < 0)
+    n = 0;
   acquire(&tickslock);
   ticks0 = ticks;
   while(ticks - ticks0 < n){
@@ -99,4 +102,28 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+// return tracing syscall number if success
+// -1 if error
+uint64
+sys_trace(void)
+{
+  int mask;
+  argint(0, &mask);
+  if(mask <= 0)
+    return -1;
+  myproc()->trace_mask |= mask;
+  return 0;
+}
+
+uint64
+sys_sysinfo(void)
+{
+  struct sysinfo info;
+  info.freemem = calculate_free();
+  info.nproc = proc_number();
+  uint64 p;
+  argaddr(0, &p);
+  return (uint64)(copyout(myproc()->pagetable, p, (char *)&info, sizeof(info)));
 }

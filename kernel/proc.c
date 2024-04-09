@@ -26,6 +26,17 @@ extern char trampoline[]; // trampoline.S
 // must be acquired before any p->lock.
 struct spinlock wait_lock;
 
+uint64
+proc_number(void)
+{
+  struct proc *p;
+  uint64 num = 0;
+  for(p = proc; p < &proc[NPROC]; p++)
+    if(p->state != UNUSED)
+      num++;
+  return num;
+}
+
 // Allocate a page for each process's kernel stack.
 // Map it high in memory, followed by an invalid
 // guard page.
@@ -287,6 +298,9 @@ fork(void)
   if((np = allocproc()) == 0){
     return -1;
   }
+  
+  // copy trace_mask
+  np->trace_mask = p->trace_mask;
 
   // Copy user memory from parent to child.
   if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
