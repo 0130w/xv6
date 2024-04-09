@@ -288,8 +288,8 @@ fork(void)
     return -1;
   }
   
-  // copy trace_number
-  np->trace_number = p->trace_number;
+  // copy trace_mask
+  np->trace_mask = p->trace_mask;
 
   // Copy user memory from parent to child.
   if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){

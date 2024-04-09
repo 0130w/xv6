@@ -97,8 +97,10 @@ sys_uptime(void)
 uint64
 sys_trace(void)
 {
-  int *n = &(myproc() -> trace_number);
-  argint(0, n);
-  int trace_number = myproc()->trace_number;
-  return trace_number > 0 ? 0 : -1;
+  int mask;
+  argint(0, &mask);
+  if(mask <= 0)
+    return -1;
+  myproc()->trace_mask |= mask;
+  return 0;
 }
