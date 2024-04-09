@@ -136,7 +136,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
 [SYS_trace]   sys_trace,
-[SYS_sysinfo]    sys_sysinfo
+[SYS_sysinfo]    sys_sysinfo,
 #ifdef LAB_NET
 [SYS_connect] sys_connect,
 #endif
@@ -168,7 +168,7 @@ static char* syscall_names[] = {
   [SYS_mkdir]   "mkdir",
   [SYS_close]   "close",
   [SYS_trace]   "trace",
-  [SYS_sysinfo] "sysinfo"
+  [SYS_sysinfo] "sysinfo",
   #ifdef LAB_NET
   [SYS_connect] "sys_connect",
   #endif
