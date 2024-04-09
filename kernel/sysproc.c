@@ -92,8 +92,13 @@ sys_uptime(void)
   return xticks;
 }
 
+// return tracing syscall number if success
+// -1 if error
 uint64
 sys_trace(void)
 {
-  return 1;
+  int *n = &(myproc() -> trace_number);
+  argint(0, n);
+  int trace_number = myproc()->trace_number;
+  return trace_number > 0 ? 0 : -1;
 }
