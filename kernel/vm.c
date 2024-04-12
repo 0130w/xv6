@@ -21,7 +21,7 @@ kvmmake(void)
 {
   pagetable_t kpgtbl;
 
-  kpgtbl = (pagetable_t) kalloc();
+  kpgtbl = (pagetable_t) kalloc();  // root page table page
   memset(kpgtbl, 0, PGSIZE);
 
   // uart registers
@@ -64,7 +64,7 @@ kvminithart()
   // wait for any previous writes to the page table memory to finish.
   sfence_vma();
 
-  w_satp(MAKE_SATP(kernel_pagetable));
+  w_satp(MAKE_SATP(kernel_pagetable));  // write root page table address to satp reg
 
   // flush stale entries from the TLB.
   sfence_vma();
