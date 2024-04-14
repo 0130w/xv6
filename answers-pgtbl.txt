@@ -1,0 +1,7 @@
+The purpose of this shared page we maintain in proc is that when we want to read
+some contents in user space after storing the contents in this shared page with
+PTE_U permission, we don't need to trap into kernel space.
+
+We can also store other infomations of process in this shared page but I think
+many syscalls are trying to get dynamic informations so we may make the shared
+page writable.

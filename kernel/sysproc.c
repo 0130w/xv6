@@ -74,11 +74,39 @@ sys_sleep(void)
 
 
 #ifdef LAB_PGTBL
-int
+uint64
 sys_pgaccess(void)
 {
-  // lab pgtbl: your code here.
-  return 0;
+  int page_num;
+  uint64 base;
+  uint64 abits_addr;
+  argaddr(0, &base);
+  argint(1, &page_num);
+  argaddr(2, &abits_addr);
+  // set upper bound of the number of pages
+  if(page_num > 32) {
+    printf("warning:  \
+                  not support to check page numbers greater than 32   \
+                  check 32 pages instead.\n");
+    page_num = 32;
+  }
+  unsigned int abits = 0;
+  for(int i = 0; i < page_num; ++i) {
+    uint64 addr = base + i * PGSIZE;
+    for(int offset = 0; offset < PGSIZE; ++offset) {
+      uint64 va = addr | offset;
+      pte_t *pte = walk(myproc()->pagetable, va, 0);
+      if(pte == 0)
+        return -1;
+      if((*pte) & PTE_A) {
+        abits |= (1 << i);
+        (*pte) &= (~PTE_A);
+        break;
+      }
+      (*pte) &= (~PTE_A);
+    }
+  }
+  return (uint64)(copyout(myproc()->pagetable, abits_addr, (char *)&abits, sizeof(abits)));
 }
 #endif
 
