@@ -15,13 +15,46 @@ extern char etext[];  // kernel.ld sets this to end of kernel code.
 
 extern char trampoline[]; // trampoline.S
 
+// internal of vmprint function
+void
+vmprint_intern(pagetable_t pagetable, int level)
+{
+  if(level < 0)
+    panic("vmprint intern");
+
+  for(int i = 0; i < 512; i++) {
+    pte_t pte = pagetable[i];
+    int ident_num = 2 - level + 1;
+    if((pte & PTE_V) && (pte & (PTE_R | PTE_W | PTE_X)) == 0) {
+      // this PTE points to a lower-level pagetable
+      PRINT_INDENT(ident_num);
+      uint64 child = PTE2PA(pte);
+      printf("%d: pte %p pa %p\n", i, pte, child);
+      vmprint_intern((pagetable_t) child, level-1); 
+    } else if(pte & PTE_V) {
+      PRINT_INDENT(ident_num);
+      uint64 addr = PTE2PA(pte);
+      printf("%d: pte %p pa %p\n", i, pte, addr);
+    }
+  }
+}
+
+// print the pagetable at given pagetable addr
+void
+vmprint(pagetable_t pagetable)
+{
+  printf("page table %p\n", pagetable);
+  // use Sv39, so 3 levels
+  vmprint_intern(pagetable, 2);
+}
+
 // Make a direct-map page table for the kernel.
 pagetable_t
 kvmmake(void)
 {
   pagetable_t kpgtbl;
 
-  kpgtbl = (pagetable_t) kalloc();
+  kpgtbl = (pagetable_t) kalloc();  // root page table page
   memset(kpgtbl, 0, PGSIZE);
 
   // uart registers
@@ -64,7 +97,7 @@ kvminithart()
   // wait for any previous writes to the page table memory to finish.
   sfence_vma();
 
-  w_satp(MAKE_SATP(kernel_pagetable));
+  w_satp(MAKE_SATP(kernel_pagetable));  // write root page table address to satp reg
 
   // flush stale entries from the TLB.
   sfence_vma();

@@ -26,6 +26,17 @@ extern char trampoline[]; // trampoline.S
 // must be acquired before any p->lock.
 struct spinlock wait_lock;
 
+uint64
+proc_number(void)
+{
+  struct proc *p;
+  uint64 num = 0;
+  for(p = proc; p < &proc[NPROC]; p++)
+    if(p->state != UNUSED)
+      num++;
+  return num;
+}
+
 // Allocate a page for each process's kernel stack.
 // Map it high in memory, followed by an invalid
 // guard page.
@@ -132,6 +143,14 @@ found:
     return 0;
   }
 
+  #ifdef LAB_PGTBL
+  if((p->usyscall = (struct usyscall *) kalloc()) == 0) {
+    freeproc(p);
+    release(&p->lock);
+    return 0;
+  }
+  #endif
+
   // An empty user page table.
   p->pagetable = proc_pagetable(p);
   if(p->pagetable == 0){
@@ -145,6 +164,9 @@ found:
   memset(&p->context, 0, sizeof(p->context));
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
+  #ifdef LAB_PGTBL
+  p->usyscall->pid = p->pid;
+  #endif
 
   return p;
 }
@@ -158,6 +180,11 @@ freeproc(struct proc *p)
   if(p->trapframe)
     kfree((void*)p->trapframe);
   p->trapframe = 0;
+  #ifdef LAB_PGTBL
+  if(p->usyscall)
+    kfree((void *)p->usyscall);
+  p->usyscall = 0;
+  #endif
   if(p->pagetable)
     proc_freepagetable(p->pagetable, p->sz);
   p->pagetable = 0;
@@ -202,6 +229,16 @@ proc_pagetable(struct proc *p)
     return 0;
   }
 
+  // map the shared data between userspace and kernel at USYSCALL
+  #ifdef LAB_PGTBL
+  if(mappages(pagetable, USYSCALL, PGSIZE,
+              (uint64)(p->usyscall), PTE_U | PTE_R) < 0) {
+    uvmunmap(pagetable, TRAMPOLINE, 2, 0);             
+    uvmfree(pagetable, 0);
+    return 0;
+  }
+  #endif
+
   return pagetable;
 }
 
@@ -212,6 +249,9 @@ proc_freepagetable(pagetable_t pagetable, uint64 sz)
 {
   uvmunmap(pagetable, TRAMPOLINE, 1, 0);
   uvmunmap(pagetable, TRAPFRAME, 1, 0);
+  #ifdef LAB_PGTBL
+  uvmunmap(pagetable, USYSCALL, 1, 0);
+  #endif
   uvmfree(pagetable, sz);
 }
 
@@ -254,7 +294,7 @@ userinit(void)
   release(&p->lock);
 }
 
-// Grow or shrink user memory by n bytes.
+// Grow or shrink user memory by n bytes. if n > 0, grow user memory, else shrink
 // Return 0 on success, -1 on failure.
 int
 growproc(int n)
@@ -287,6 +327,9 @@ fork(void)
   if((np = allocproc()) == 0){
     return -1;
   }
+  
+  // copy trace_mask
+  np->trace_mask = p->trace_mask;
 
   // Copy user memory from parent to child.
   if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){

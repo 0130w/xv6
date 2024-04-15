@@ -1,10 +1,11 @@
 #include "types.h"
 #include "riscv.h"
-#include "defs.h"
 #include "param.h"
+#include "defs.h"
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
+#include "sysinfo.h"
 
 uint64
 sys_exit(void)
@@ -54,7 +55,8 @@ sys_sleep(void)
   int n;
   uint ticks0;
 
-  argint(0, &n);
+
+  argint(0, &n);  // get the first argument of syscall
   if(n < 0)
     n = 0;
   acquire(&tickslock);
@@ -69,6 +71,44 @@ sys_sleep(void)
   release(&tickslock);
   return 0;
 }
+
+
+#ifdef LAB_PGTBL
+uint64
+sys_pgaccess(void)
+{
+  int page_num;
+  uint64 base;
+  uint64 abits_addr;
+  argaddr(0, &base);
+  argint(1, &page_num);
+  argaddr(2, &abits_addr);
+  // set upper bound of the number of pages
+  if(page_num > 32) {
+    printf("warning:  \
+                  not support to check page numbers greater than 32   \
+                  check 32 pages instead.\n");
+    page_num = 32;
+  }
+  unsigned int abits = 0;
+  for(int i = 0; i < page_num; ++i) {
+    uint64 addr = base + i * PGSIZE;
+    for(int offset = 0; offset < PGSIZE; ++offset) {
+      uint64 va = addr | offset;
+      pte_t *pte = walk(myproc()->pagetable, va, 0);
+      if(pte == 0)
+        return -1;
+      if((*pte) & PTE_A) {
+        abits |= (1 << i);
+        (*pte) &= (~PTE_A);
+        break;
+      }
+      (*pte) &= (~PTE_A);
+    }
+  }
+  return (uint64)(copyout(myproc()->pagetable, abits_addr, (char *)&abits, sizeof(abits)));
+}
+#endif
 
 uint64
 sys_kill(void)
@@ -90,4 +130,28 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+// return tracing syscall number if success
+// -1 if error
+uint64
+sys_trace(void)
+{
+  int mask;
+  argint(0, &mask);
+  if(mask <= 0)
+    return -1;
+  myproc()->trace_mask |= mask;
+  return 0;
+}
+
+uint64
+sys_sysinfo(void)
+{
+  struct sysinfo info;
+  info.freemem = calculate_free();
+  info.nproc = proc_number();
+  uint64 p;
+  argaddr(0, &p);
+  return (uint64)(copyout(myproc()->pagetable, p, (char *)&info, sizeof(info)));
 }
