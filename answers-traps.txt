@@ -1,0 +1,10 @@
+1.  a2 register holds 13 while a1 register holds 12
+2.  The instruction:   
+    li	a1,12
+    actually inline the functions f and g and then loads the result which equals to 12 into a1 register
+3.  000000000000066a
+4.  0000000000000038
+5.  Output: HE110 World
+    If RISC-V is big-endian, we should set i = 0x726c6400
+    No need to change 57616 to a different value
+6.  The value in a2 register. (The answer is not a specific value since we don't know what's the value of a2 reg at that time.)
