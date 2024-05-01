@@ -195,6 +195,7 @@ UPROGS=\
 	$U/_primes\
 	$U/_trace\
 	$U/_sysinfotest\
+	$U/_alarmtest\
 
 
 

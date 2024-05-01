@@ -110,6 +110,10 @@ extern uint64 sys_connect(void);
 #ifdef LAB_PGTBL
 extern uint64 sys_pgaccess(void);
 #endif
+#ifdef LAB_TRAPS
+extern uint64 sys_sigalarm(void);
+extern uint64 sys_sigreturn(void);
+#endif
 
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
@@ -143,6 +147,10 @@ static uint64 (*syscalls[])(void) = {
 #ifdef LAB_PGTBL
 [SYS_pgaccess] sys_pgaccess,
 #endif
+#ifdef LAB_TRAPS
+[SYS_sigalarm] sys_sigalarm,
+[SYS_sigreturn] sys_sigreturn,
+#endif
 };
 
 static char* syscall_names[] = {
@@ -174,6 +182,10 @@ static char* syscall_names[] = {
   #endif
   #ifdef LAB_PGTBL
   [SYS_pgaccess] "sys_pgaccess",
+  #endif
+  #ifdef LAB_TRAPS
+  [SYS_sigalarm]  "sys_sigalarm",
+  [SYS_sigreturn] "sys_sigreturn",
   #endif
 };
 

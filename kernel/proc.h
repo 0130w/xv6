@@ -79,6 +79,47 @@ struct trapframe {
   /* 280 */ uint64 t6;
 };
 
+
+#ifdef LAB_TRAPS
+// before call sigalarm, saved all user registers and user program counter
+// since sigalarm will overwrite epc reg and after entering user space it will
+// also manipulate user registers
+struct alarmframe {
+  /*  0 */  uint64 ra;
+  /*  8 */  uint64 sp;
+  /*  16 */ uint64 gp;
+  /*  24 */ uint64 tp;
+  /*  32 */ uint64 t0;
+  /*  40 */ uint64 t1;
+  /*  48 */ uint64 t2;
+  /*  56 */ uint64 s0;
+  /*  64 */ uint64 s1;
+  /*  72 */ uint64 a0;
+  /*  80 */ uint64 a1;
+  /*  88 */ uint64 a2;
+  /*  96 */ uint64 a3;
+  /* 104 */ uint64 a4;
+  /* 112 */ uint64 a5;
+  /* 120 */ uint64 a6;
+  /* 128 */ uint64 a7;
+  /* 136 */ uint64 s2;
+  /* 144 */ uint64 s3;
+  /* 152 */ uint64 s4;
+  /* 160 */ uint64 s5;
+  /* 168 */ uint64 s6;
+  /* 176 */ uint64 s7;
+  /* 184 */ uint64 s8;
+  /* 192 */ uint64 s9;
+  /* 200 */ uint64 s10;
+  /* 208 */ uint64 s11;
+  /* 216 */ uint64 t3;
+  /* 224 */ uint64 t4;
+  /* 232 */ uint64 t5;
+  /* 240 */ uint64 t6;
+  /* 248 */ uint64 epc;
+};
+#endif
+
 enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 // Per-process state
@@ -102,6 +143,12 @@ struct proc {
   struct trapframe *trapframe;      // data page for trampoline.S
   #ifdef LAB_PGTBL
   struct usyscall *usyscall;        // shared data between kernel and userspace
+  #endif
+  #ifdef LAB_TRAPS
+  int alarm_interval;               // alarm interval
+  uint64 alarm_handler;             // address of alarm handler in user space
+  int ticks;                        // ticks have passed since the last call to the process's alarm handler
+  struct alarmframe *alarmframe;    // stored state before sigalarm
   #endif
   struct context context;           // swtch() here to run process
   struct file *ofile[NOFILE];       // Open files

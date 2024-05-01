@@ -114,6 +114,29 @@ sys_pgaccess(void)
 }
 #endif
 
+#ifdef LAB_TRAPS
+uint64
+sys_sigalarm(void)
+{
+  int ticks;
+  uint64 handler;
+  argint(0, &ticks);
+  argaddr(1, &handler);
+  myproc()->alarm_interval = ticks;
+  // handler is virtual address of handler function in user space
+  myproc()->alarm_handler = handler;
+  return 0;
+}
+
+uint64
+sys_sigreturn(void)
+{
+  myproc()->ticks = 0;
+  restore_alarm_state(myproc());
+  return myproc()->trapframe->a0; 
+}
+#endif
+
 uint64
 sys_kill(void)
 {

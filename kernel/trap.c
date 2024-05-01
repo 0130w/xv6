@@ -77,8 +77,21 @@ usertrap(void)
     exit(-1);
 
   // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2)
+  if(which_dev == 2) {
+    #ifdef LAB_TRAPS
+    // if user call sigalarm(0, 0) -> stop generating periodic alarm calls
+    if(!(p->alarm_handler == 0 && p->alarm_interval == 0)) {
+      p->ticks += 1;
+      if(p->ticks == p->alarm_interval) {
+        // save necessary status in order to restore status after sigreturn
+        store_alarm_state(p);
+        // set sepc register
+        p->trapframe->epc = p->alarm_handler;
+      }
+    }
+    #endif
     yield();
+  }
 
   usertrapret();
 }
